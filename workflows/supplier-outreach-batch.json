@@ -1,0 +1,12 @@
+{
+  "name": "Supplier Outreach Batch Sender (Coming Soon)",
+  "nodes": [],
+  "connections": {},
+  "active": false,
+  "settings": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [],
+  "_comment": "Phase 1 workflow - not yet built. Will pull supplier contacts from Notion database and send batch RFI/RFQ emails with tracking labels."
+}

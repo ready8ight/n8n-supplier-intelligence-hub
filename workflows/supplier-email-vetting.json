@@ -1,0 +1,341 @@
+{
+  "name": "Log Supplier Email Replies to Notion Database (Fixed)",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "labelIds": [
+            "Label_9010414397365468569"
+          ]
+        }
+      },
+      "id": "18cf333d-300f-4426-81d5-bfbc1eb72e46",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [0, 0],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GmRgLlzrj9lxjTZR",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": "={{ $node[\"Gmail Trigger\"].json[\"id\"] }}",
+        "simple": false,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [220, 0],
+      "id": "9eeda34c-1e38-4040-91c8-f5d507c5da04",
+      "name": "Get a message",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "GmRgLlzrj9lxjTZR",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "acc83163-fc5c-4422-9782-e77b75beb9f6",
+          "mode": "list",
+          "cachedResultName": "Suppliers",
+          "cachedResultUrl": "https://www.notion.so/acc83163fc5c44229782e77b75beb9f6"
+        },
+        "limit": 1,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Emails (All)|rich_text",
+              "condition": "contains",
+              "textValue": "={{ (() => { const from = $node[\"Gmail Trigger\"].json[\"From\"]; const match = from.match(/<([^>]+)>/); return match ? match[1] : from; })() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c010aa91-b9f9-42f3-b4c2-dcb7bba0f3b9",
+      "name": "Find Supplier in Notion",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [440, 0],
+      "credentials": {
+        "notionApi": {
+          "id": "5LawXIdAHLqcwUnB",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://coco-coir-intel-v2-production.up.railway.app/api/v1/supplier-email/analyze",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ supplier_id: $node[\"Find Supplier in Notion\"].json[\"id\"], supplier_name: $node[\"Find Supplier in Notion\"].json[\"properties\"][\"Name\"]?.[\"title\"]?.[0]?.[\"plain_text\"] || \"\", subject: $node[\"Gmail Trigger\"].json[\"Subject\"], body: $node[\"Get a message\"].json[\"text\"] || $node[\"Gmail Trigger\"].json[\"snippet\"], attachments: [] }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [660, 0],
+      "id": "a7100589-9294-46ea-8816-4feffc09b2fa",
+      "name": "Analyze Supplier Email"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "c7b3d5ce-4ede-478d-86d3-e2540d06aa1a",
+          "mode": "list",
+          "cachedResultName": "Supplier Communications",
+          "cachedResultUrl": "https://www.notion.so/c7b3d5ce4ede478d86d3e2540d06aa1a"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Subject|title",
+              "title": "={{ $node[\"Gmail Trigger\"].json[\"Subject\"] }}"
+            },
+            {
+              "key": "Direction|select",
+              "selectValue": "Inbound"
+            },
+            {
+              "key": "Status|select",
+              "selectValue": "Replied"
+            },
+            {
+              "key": "Last Reply Date|date",
+              "date": "={{ new Date().toISOString() }}",
+              "timezone": "US/Central"
+            },
+            {
+              "key": "Gmail Thread ID|rich_text",
+              "textContent": "={{ $node[\"Gmail Trigger\"].json[\"threadId\"] }}"
+            },
+            {
+              "key": "Raw Email Body|rich_text",
+              "textContent": "={{ ($node[\"Get a message\"].json[\"text\"] || $node[\"Gmail Trigger\"].json[\"snippet\"] || \"\").slice(0, 1900) }}"
+            },
+            {
+              "key": "Supplier|relation",
+              "relationValue": ["={{ $node[\"Find Supplier in Notion\"].json[\"id\"] }}"]
+            },
+            {
+              "key": "Questions Answered MS|multi_select",
+              "multiSelectValue": "={{ (Array.isArray($node[\"Analyze Supplier Email\"].json[\"questions_answered\"]) ? $node[\"Analyze Supplier Email\"].json[\"questions_answered\"] : []).map(v => typeof v === \"string\" ? v : (v?.name ?? \"\")).flatMap(v => String(v).split(/[,;\\n]+/)).map(s => s.trim()).filter(Boolean).map(s => s.toLowerCase().replace(/[^\\w]+/g, \"_\").replace(/^_+|_+$/g, \"\").replace(/_+/g, \"_\")) }}"
+            },
+            {
+              "key": "Extracted Data|rich_text",
+              "textContent": "={{ JSON.stringify($node[\"Analyze Supplier Email\"].json).slice(0, 1900) }}"
+            },
+            {
+              "key": "Pending Questions MS|multi_select",
+              "multiSelectValue": "={{ (Array.isArray($node[\"Analyze Supplier Email\"].json[\"questions_pending\"]) ? $node[\"Analyze Supplier Email\"].json[\"questions_pending\"] : []).map(v => typeof v === \"string\" ? v : (v?.name ?? \"\")).flatMap(v => String(v).split(/[,;\\n]+/)).map(s => s.trim()).filter(Boolean).map(s => s.toLowerCase().replace(/[^\\w]+/g, \"_\").replace(/^_+|_+$/g, \"\").replace(/_+/g, \"_\")) }}"
+            },
+            {
+              "key": "Sent Date|date",
+              "date": "={{ new Date(Number($node[\"Gmail Trigger\"].json[\"internalDate\"])).toISOString() }}"
+            },
+            {
+              "key": "Draft Status|select",
+              "selectValue": "Pending Review"
+            },
+            {
+              "key": "Draft Response|rich_text",
+              "textContent": "={{ ($node[\"Analyze Supplier Email\"].json[\"draft_response\"] || \"\").slice(0, 1900) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6acf3d79-9b8e-44c5-be6e-1cb7caaa646e",
+      "name": "Create Supplier Communication",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [880, 0],
+      "credentials": {
+        "notionApi": {
+          "id": "5LawXIdAHLqcwUnB",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Conservative merge logic for supplier updates\n// Only updates fields when new value is non-empty AND (existing is empty OR new is better)\n\nconst supplier = $node[\"Find Supplier in Notion\"].json;\nconst props = supplier.properties || {};\nconst ef = $node[\"Analyze Supplier Email\"].json.extracted_fields || {};\nconst pqc = ef.process_qc || {};\nconst pricing = ef.pricing || {};\nconst emailDate = new Date(Number($node[\"Gmail Trigger\"].json[\"internalDate\"])).toISOString().split(\"T\")[0];\n\n// Helper: get plain text from Notion property\nfunction getNotionText(prop) {\n  if (!prop) return \"\";\n  if (prop.rich_text) return prop.rich_text.map(t => t.plain_text).join(\"\");\n  if (prop.title) return prop.title.map(t => t.plain_text).join(\"\");\n  if (prop.phone_number) return prop.phone_number || \"\";\n  if (prop.number !== undefined) return prop.number;\n  if (prop.select) return prop.select?.name || \"\";\n  if (prop.checkbox !== undefined) return prop.checkbox;\n  if (prop.multi_select) return prop.multi_select.map(s => s.name);\n  return \"\";\n}\n\n// Helper: check if new value is \"better\" (non-empty and existing is empty, or significantly more info)\nfunction shouldUpdate(existingVal, newVal, alwaysUpdateIfNew = false) {\n  const newEmpty = newVal === null || newVal === undefined || newVal === \"\" || \n                   (Array.isArray(newVal) && newVal.length === 0);\n  if (newEmpty) return false;\n  \n  const existingEmpty = existingVal === null || existingVal === undefined || existingVal === \"\" ||\n                        existingVal === 0 || (Array.isArray(existingVal) && existingVal.length === 0);\n  if (existingEmpty) return true;\n  if (alwaysUpdateIfNew) return true;\n  \n  // For strings: update if new is 20%+ longer\n  if (typeof existingVal === \"string\" && typeof newVal === \"string\") {\n    return newVal.length > existingVal.length * 1.2;\n  }\n  return false;\n}\n\n// Helper: merge multi-selects (union)\nfunction mergeMultiSelect(existing, newVals) {\n  const existingSet = new Set((existing || []).map(s => s.toLowerCase()));\n  const merged = [...(existing || [])];\n  for (const v of (newVals || [])) {\n    if (!existingSet.has(v.toLowerCase())) {\n      merged.push(v);\n    }\n  }\n  return merged;\n}\n\n// Build update payload and audit trail\nconst updates = {};\nconst updated = [];\nconst skipped = {};\n\n// --- Capacity (always update if new) ---\nconst existingCapacity = getNotionText(props[\"Capacity (MT/month)\"]);\nif (shouldUpdate(existingCapacity, ef.capacity_mt_month, true)) {\n  updates.capacity = ef.capacity_mt_month;\n  updated.push(\"Capacity (MT/month)\");\n} else if (ef.capacity_mt_month) {\n  skipped[\"Capacity (MT/month)\"] = \"existing value present\";\n}\n\n// --- Primary Port (always update if new) ---\nconst existingPort = getNotionText(props[\"Primary Port\"]);\nif (shouldUpdate(existingPort, ef.primary_port, true)) {\n  updates.primary_port = ef.primary_port;\n  updated.push(\"Primary Port\");\n} else if (ef.primary_port) {\n  skipped[\"Primary Port\"] = \"existing value present\";\n}\n\n// --- Payment Terms (always update if new) ---\nconst existingPayment = getNotionText(props[\"Payment Terms\"]);\nif (shouldUpdate(existingPayment, ef.payment_terms, true)) {\n  updates.payment_terms = ef.payment_terms;\n  updated.push(\"Payment Terms\");\n} else if (ef.payment_terms) {\n  skipped[\"Payment Terms\"] = \"existing value present\";\n}\n\n// --- Typical Lead Time (always update if new) ---\nconst existingLead = getNotionText(props[\"Typical Lead Time\"]);\nconst leadParts = [];\nif (ef.production_lead_days) leadParts.push(`Production: ${ef.production_lead_days} days`);\nif (ef.shipping_lead_days) leadParts.push(`Shipping: ${ef.shipping_lead_days} days`);\nconst newLead = leadParts.join(\", \");\nif (shouldUpdate(existingLead, newLead, true)) {\n  updates.typical_lead_time = newLead;\n  updated.push(\"Typical Lead Time\");\n} else if (newLead) {\n  skipped[\"Typical Lead Time\"] = \"existing value present\";\n}\n\n// --- MOQ (always update if new) ---\nconst existingMoq = getNotionText(props[\"MOQ\"]);\nconst newMoq = ef.container_loading_mt ? `${ef.container_loading_mt} MT per 40ft container` : \"\";\nif (shouldUpdate(existingMoq, newMoq, true)) {\n  updates.moq = newMoq;\n  updated.push(\"MOQ\");\n} else if (newMoq) {\n  skipped[\"MOQ\"] = \"existing value present\";\n}\n\n// --- Certifications (MERGE) ---\nconst existingCerts = getNotionText(props[\"Certifications\"]);\nif (ef.certs && ef.certs.length > 0) {\n  updates.certifications = mergeMultiSelect(existingCerts, ef.certs);\n  if (updates.certifications.length > existingCerts.length) {\n    updated.push(\"Certifications\");\n  }\n}\n\n// --- Has Lab (update if empty) ---\nconst existingHasLab = getNotionText(props[\"Has Lab\"]);\nif (pqc.has_inhouse_lab !== undefined && (existingHasLab === \"\" || existingHasLab === false)) {\n  updates.has_lab = pqc.has_inhouse_lab;\n  updated.push(\"Has Lab\");\n}\n\n// --- Lab Tests (MERGE) ---\nconst existingLabTests = getNotionText(props[\"Lab Tests\"]);\nif (pqc.lab_tests_available && pqc.lab_tests_available.length > 0) {\n  updates.lab_tests = mergeMultiSelect(existingLabTests, pqc.lab_tests_available);\n  if (updates.lab_tests.length > (existingLabTests?.length || 0)) {\n    updated.push(\"Lab Tests\");\n  }\n}\n\n// --- Process Steps (MERGE) ---\nconst existingProcess = getNotionText(props[\"Process Steps\"]);\nif (pqc.process_steps && pqc.process_steps.length > 0) {\n  updates.process_steps = mergeMultiSelect(existingProcess, pqc.process_steps);\n  if (updates.process_steps.length > (existingProcess?.length || 0)) {\n    updated.push(\"Process Steps\");\n  }\n}\n\n// --- Key Machinery (update if better) ---\nconst existingMachinery = getNotionText(props[\"Key Machinery\"]);\nconst newMachinery = (pqc.key_machinery || []).join(\", \");\nif (shouldUpdate(existingMachinery, newMachinery)) {\n  updates.key_machinery = newMachinery;\n  updated.push(\"Key Machinery\");\n}\n\n// --- Primary Contact (update if better) ---\nconst existingContact = getNotionText(props[\"Primary Contact\"]);\nif (shouldUpdate(existingContact, ef.contact_name)) {\n  updates.primary_contact = ef.contact_name;\n  updated.push(\"Primary Contact\");\n}\n\n// --- WhatsApp (update if empty or different) ---\nconst existingWhatsApp = getNotionText(props[\"WhatsApp\"]);\nif (ef.contact_whatsapp && (!existingWhatsApp || existingWhatsApp !== ef.contact_whatsapp)) {\n  updates.whatsapp = ef.contact_whatsapp;\n  updated.push(\"WhatsApp\");\n}\n\n// --- Pricing Notes (ALWAYS update with latest quote snapshot) ---\nconst li = (pricing.line_items || [])[0] || {};\nconst pricingLines = [`Latest Quote (${emailDate}):`];\nif (li.price_per_unit && li.unit) {\n  pricingLines.push(`• ${li.product_type || \"Product\"}: ${li.price_per_unit} ${ef.currency || pricing.currency || \"USD\"}/${li.unit}${li.incoterm ? ` (${li.incoterm})` : \"\"}${li.port_from ? ` from ${li.port_from}` : \"\"}`);\n}\nif (ef.capacity_mt_month) pricingLines.push(`• Capacity: ${ef.capacity_mt_month} MT/month`);\nif (ef.production_lead_days) pricingLines.push(`• Production lead: ${ef.production_lead_days} days`);\nif (ef.shipping_lead_days) pricingLines.push(`• Shipping lead: ${ef.shipping_lead_days} days`);\nif (ef.payment_terms) pricingLines.push(`• Payment: ${ef.payment_terms}`);\nif (ef.primary_port) pricingLines.push(`• Port: ${ef.primary_port}`);\nif (ef.ec_level_ms_cm) pricingLines.push(`• EC: ${ef.ec_level_ms_cm} mS/cm`);\nif (ef.ph_level) pricingLines.push(`• pH: ${ef.ph_level}`);\nif (ef.moisture_percent) pricingLines.push(`• Moisture: ${ef.moisture_percent}%`);\n\nif (pricingLines.length > 1) {\n  updates.pricing_notes = pricingLines.join(\"\\n\");\n  updated.push(\"Pricing Notes\");\n}\n\n// Build audit summary for Supplier Communications\nconst summary = updated.length > 0 \n  ? `Updated: ${updated.join(\", \")}${Object.keys(skipped).length > 0 ? `; Skipped: ${Object.keys(skipped).join(\", \")}` : \"\"}`\n  : \"No fields updated\";\n\nreturn [{\n  json: {\n    supplier_id: supplier.id,\n    updates,\n    updated_fields: updated,\n    skipped_fields: skipped,\n    update_summary: summary,\n    has_updates: updated.length > 0\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 0],
+      "id": "merge-logic-node",
+      "name": "Build Supplier Update (Merge Logic)"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $node[\"Find Supplier in Notion\"].json[\"id\"] }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Capacity (MT/month)|number",
+              "numberValue": "={{ $json.updates.capacity }}"
+            },
+            {
+              "key": "Primary Port|select",
+              "selectValue": "={{ $json.updates.primary_port }}"
+            },
+            {
+              "key": "Payment Terms|rich_text",
+              "textContent": "={{ $json.updates.payment_terms }}"
+            },
+            {
+              "key": "Typical Lead Time|rich_text",
+              "textContent": "={{ $json.updates.typical_lead_time }}"
+            },
+            {
+              "key": "MOQ|rich_text",
+              "textContent": "={{ $json.updates.moq }}"
+            },
+            {
+              "key": "Certifications|multi_select",
+              "multiSelectValue": "={{ $json.updates.certifications }}"
+            },
+            {
+              "key": "Has Lab|checkbox",
+              "checkboxValue": "={{ $json.updates.has_lab }}"
+            },
+            {
+              "key": "Lab Tests|multi_select",
+              "multiSelectValue": "={{ $json.updates.lab_tests }}"
+            },
+            {
+              "key": "Process Steps|multi_select",
+              "multiSelectValue": "={{ $json.updates.process_steps }}"
+            },
+            {
+              "key": "Key Machinery|rich_text",
+              "textContent": "={{ $json.updates.key_machinery }}"
+            },
+            {
+              "key": "Primary Contact|rich_text",
+              "textContent": "={{ $json.updates.primary_contact }}"
+            },
+            {
+              "key": "WhatsApp|phone_number",
+              "phoneValue": "={{ $json.updates.whatsapp }}"
+            },
+            {
+              "key": "Pricing Notes|rich_text",
+              "textContent": "={{ $json.updates.pricing_notes }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [1320, 0],
+      "id": "update-supplier-node",
+      "name": "Update Supplier",
+      "credentials": {
+        "notionApi": {
+          "id": "5LawXIdAHLqcwUnB",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $node[\"Create Supplier Communication\"].json[\"id\"] }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Supplier Update Summary|rich_text",
+              "textContent": "={{ $node[\"Build Supplier Update (Merge Logic)\"].json.update_summary }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [1540, 0],
+      "id": "log-update-summary",
+      "name": "Log Update Summary to Communication",
+      "credentials": {
+        "notionApi": {
+          "id": "5LawXIdAHLqcwUnB",
+          "name": "Notion account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Gmail Trigger": {
+      "main": [[{"node": "Get a message", "type": "main", "index": 0}]]
+    },
+    "Get a message": {
+      "main": [[{"node": "Find Supplier in Notion", "type": "main", "index": 0}]]
+    },
+    "Find Supplier in Notion": {
+      "main": [[{"node": "Analyze Supplier Email", "type": "main", "index": 0}]]
+    },
+    "Analyze Supplier Email": {
+      "main": [[{"node": "Create Supplier Communication", "type": "main", "index": 0}]]
+    },
+    "Create Supplier Communication": {
+      "main": [[{"node": "Build Supplier Update (Merge Logic)", "type": "main", "index": 0}]]
+    },
+    "Build Supplier Update (Merge Logic)": {
+      "main": [[{"node": "Update Supplier", "type": "main", "index": 0}]]
+    },
+    "Update Supplier": {
+      "main": [[{"node": "Log Update Summary to Communication", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}
