@@ -12,7 +12,7 @@
         },
         "filters": {
           "labelIds": [
-            "Label_9010414397365468569"
+            "YOUR_GMAIL_LABEL_ID"
           ]
         }
       },
@@ -23,7 +23,7 @@
       "position": [0, 0],
       "credentials": {
         "gmailOAuth2": {
-          "id": "GmRgLlzrj9lxjTZR",
+          "id": "YOUR_GMAIL_CREDENTIAL_ID",
           "name": "Gmail account"
         }
       }
@@ -42,7 +42,7 @@
       "name": "Get a message",
       "credentials": {
         "gmailOAuth2": {
-          "id": "GmRgLlzrj9lxjTZR",
+          "id": "YOUR_GMAIL_CREDENTIAL_ID",
           "name": "Gmail account"
         }
       }
@@ -53,10 +53,10 @@
         "operation": "getAll",
         "databaseId": {
           "__rl": true,
-          "value": "acc83163-fc5c-4422-9782-e77b75beb9f6",
+          "value": "YOUR_SUPPLIERS_DATABASE_ID",
           "mode": "list",
           "cachedResultName": "Suppliers",
-          "cachedResultUrl": "https://www.notion.so/acc83163fc5c44229782e77b75beb9f6"
+          "cachedResultUrl": "https://www.notion.so/YOUR_SUPPLIERS_DATABASE_ID"
         },
         "limit": 1,
         "filterType": "manual",
@@ -78,7 +78,7 @@
       "position": [440, 0],
       "credentials": {
         "notionApi": {
-          "id": "5LawXIdAHLqcwUnB",
+          "id": "YOUR_NOTION_CREDENTIAL_ID",
           "name": "Notion account"
         }
       }
@@ -86,7 +86,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://coco-coir-intel-v2-production.up.railway.app/api/v1/supplier-email/analyze",
+        "url": "https://your-api-endpoint.com/api/v1/supplier-email/analyze",
         "sendBody": true,
         "contentType": "raw",
         "rawContentType": "application/json",
@@ -110,10 +110,10 @@
         "resource": "databasePage",
         "databaseId": {
           "__rl": true,
-          "value": "c7b3d5ce-4ede-478d-86d3-e2540d06aa1a",
+          "value": "YOUR_COMMUNICATIONS_DATABASE_ID",
           "mode": "list",
           "cachedResultName": "Supplier Communications",
-          "cachedResultUrl": "https://www.notion.so/c7b3d5ce4ede478d86d3e2540d06aa1a"
+          "cachedResultUrl": "https://www.notion.so/YOUR_COMMUNICATIONS_DATABASE_ID"
         },
         "propertiesUi": {
           "propertyValues": [
@@ -181,7 +181,7 @@
       "position": [880, 0],
       "credentials": {
         "notionApi": {
-          "id": "5LawXIdAHLqcwUnB",
+          "id": "YOUR_NOTION_CREDENTIAL_ID",
           "name": "Notion account"
         }
       }
@@ -270,7 +270,7 @@
       "name": "Update Supplier",
       "credentials": {
         "notionApi": {
-          "id": "5LawXIdAHLqcwUnB",
+          "id": "YOUR_NOTION_CREDENTIAL_ID",
           "name": "Notion account"
         }
       }
@@ -301,7 +301,7 @@
       "name": "Log Update Summary to Communication",
       "credentials": {
         "notionApi": {
-          "id": "5LawXIdAHLqcwUnB",
+          "id": "YOUR_NOTION_CREDENTIAL_ID",
           "name": "Notion account"
         }
       }
